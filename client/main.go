@@ -7,12 +7,12 @@ import (
 	"log"
 
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/anypb"
+	
 )
 
 type KeyValuePair struct {
 	Key   string `json:"key"`
-	Value string `json:"value"`
+	Value bool `json:"value"`
 }
 
 var client pb.MyServiceClient
@@ -34,7 +34,7 @@ func InsertData() {
 	name := "Kyc-App"
 	value := KeyValuePair{
 		Key:   "1",
-		Value: "54321",
+		Value: true,
 	}
 	valueJSON, err := json.Marshal(value)
 	if err != nil {
@@ -42,9 +42,7 @@ func InsertData() {
 	}
 	req := &pb.Request{
 		Name: name,
-		Value: &anypb.Any{
-			Value: valueJSON,
-		},
+		Value: string(valueJSON),
 	}
 	_, err = client.InsertData(context.Background(), req)
 	if err != nil {
@@ -54,8 +52,8 @@ func InsertData() {
 
 func GetData() {
 
-	id := "65392561f7ea7462e51a1de2"
-	key := "11"
+	id := "653a2d746d1225d37852be97"
+	key := "5"
 	req := &pb.GetDataRequest{
 		Id:  id,
 		Key: key,
@@ -67,8 +65,8 @@ func GetData() {
 }
 
 func AddConfig() {
-	id := "653a0683e9807ff9306101f1"
-	key := "3"
+	id := "653a2d746d1225d37852be97"
+	key := "5"
 	value := []string{"1", "2", "3"}
 	valueJSON, err := json.Marshal(value)
 	if err != nil {
@@ -77,9 +75,7 @@ func AddConfig() {
 	req := &pb.AddConfigRequest{
 		Id:  id,
 		Key: key,
-		Value: &anypb.Any{
-			Value: valueJSON,
-		},
+		Value: string(valueJSON),
 	}
 	_, err = client.AddConfig(context.Background(), req)
 	if err != nil {

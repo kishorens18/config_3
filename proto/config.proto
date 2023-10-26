@@ -4,7 +4,7 @@ package yourpackage;
 
 option go_package = "github.com/kishorens18";
 
-import "google/protobuf/any.proto";
+
 import "google/protobuf/empty.proto";
 
 message Application {
@@ -16,12 +16,12 @@ message Application {
 message Request {
     string Name = 1;
     string Key = 2;
-    google.protobuf.Any Value = 3;
+    string Value = 3;
 }
 message AddConfigRequest {
     string id =1;
     string Key = 2;
-    google.protobuf.Any Value = 3;
+    string Value = 3;
 }
 
 message GetDataRequest {

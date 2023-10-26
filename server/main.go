@@ -34,7 +34,7 @@ type RequestData struct {
 func (s *server) InsertData(ctx context.Context, req *pb.Request) (*emptypb.Empty, error) {
 
 	var value interface{}
-	err := json.Unmarshal(req.Value.Value, &value)
+	err := json.Unmarshal([]byte(req.Value), &value)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +175,7 @@ func (s *server) GetData(ctx context.Context, req *pb.GetDataRequest) (*pb.GetDa
 
 func (s *server) AddConfig(ctx context.Context, req *pb.AddConfigRequest) (*emptypb.Empty, error) {
 	var value interface{}
-	err := json.Unmarshal(req.Value.Value, &value)
+	err := json.Unmarshal([]byte(req.Value), &value)
 	if err != nil {
 		return nil, err
 	}
