@@ -87,13 +87,6 @@ func (s *server) GetData(ctx context.Context, req *pb.GetDataRequest) (*pb.GetDa
 		return nil, err
 	}
 
-	err = collection.FindOne(context.TODO(), filter).Decode(&wholeDocumentResult)
-	if err != nil {
-		fmt.Println("Error in Whole Document")
-		fmt.Println(err)
-		return nil, err
-	}
-
 	fmt.Println("Whole:")
 	fmt.Println(wholeDocumentResult)
 
