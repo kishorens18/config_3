@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
-
+	"encoding/json"
 	pb "go_config/proto"
 	"log"
 
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 type KeyValuePair struct {
@@ -14,83 +15,74 @@ type KeyValuePair struct {
 	Value string `json:"value"`
 }
 
+var client pb.MyServiceClient
+
 func main() {
 	conn, err := grpc.Dial("localhost:5001", grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("failed to connect: %v", err)
 	}
 	defer conn.Close()
+	client = pb.NewMyServiceClient(conn)
 
-	client := pb.NewMyServiceClient(conn)
+	// InsertData()
+	// AddConfig()
+	GetData()
+}
 
-	// insert Data ----->
+func InsertData() {
+	name := "Kyc-App"
+	value := KeyValuePair{
+		Key:   "1",
+		Value: "54321",
+	}
+	valueJSON, err := json.Marshal(value)
+	if err != nil {
+		log.Fatalf("Failed to marshal value to JSON: %v", err)
+	}
+	req := &pb.Request{
+		Name: name,
+		Value: &anypb.Any{
+			Value: valueJSON,
+		},
+	}
+	_, err = client.InsertData(context.Background(), req)
+	if err != nil {
+		log.Fatalf("Failed to insert data: %v", err)
+	}
+}
 
-	// name := "Kyc-App2"
-	// value := KeyValuePair{
-	// 	Key:   "11",
-	// 	Value: "54321",
-	// }
+func GetData() {
 
-	// valueJSON, err := json.Marshal(value)
-	// if err != nil {
-	// 	log.Fatalf("Failed to marshal value to JSON: %v", err)
-	// }
-
-	// req := &pb.Request{
-	// 	Name: name,
-	// 	Value: &anypb.Any{
-	// 		Value: valueJSON,
-	// 	},
-	// }
-
-	// _, err = client.InsertData(context.Background(), req)
-	// if err != nil {
-	// 	log.Fatalf("Failed to insert data: %v", err)
-	// }
-
-	// <-----------AddData
-
-	// ---------> GetData
-
-	id := "65392561f7ea7462e51a1de2"
-	key := ""
-
-	req2 := &pb.GetDataRequest{
+	id := "653a0683e9807ff9306101f1"
+	key := "2"
+	req := &pb.GetDataRequest{
 		Id:  id,
 		Key: key,
 	}
-
-	_, err = client.GetData(context.Background(), req2)
+	_, err := client.GetData(context.Background(), req)
 	if err != nil {
-		log.Fatalf("Failed to get data: %v", err)
+		log.Fatalf("Failed to insert data: %v", err)
 	}
+}
 
-	// <---------- GetData
-
-	// -------->addConfig
-
-	// id := "65392561f7ea7462e51a1de2"
-	// key := "3"
-	// value := true
-	// valueJSON, err := json.Marshal(value)
-	// if err != nil {
-	// 	log.Fatalf("Failed to marshal value to JSON: %v", err)
-	// }
-
-	// req := &pb.AddConfigRequest{
-	// 	Id:  id,
-	// 	Key: key,
-	// 	Value: &anypb.Any{
-	// 		Value: valueJSON,
-	// 	},
-	// }
-	// fmt.Println(req)
-	// _, err = client.AddConfig(context.Background(), req)
-	// if err != nil {
-	// 	fmt.Println("2222")
-	// 	log.Fatalf("Failed to insert data: %v", err)
-	// }
-
-	// <--------------- AddConfig
-
+func AddConfig() {
+	id := "653a0683e9807ff9306101f1"
+	key := "3"
+	value := []string{"1", "2", "3"}
+	valueJSON, err := json.Marshal(value)
+	if err != nil {
+		log.Fatalf("Failed to marshal value to JSON: %v", err)
+	}
+	req := &pb.AddConfigRequest{
+		Id:  id,
+		Key: key,
+		Value: &anypb.Any{
+			Value: valueJSON,
+		},
+	}
+	_, err = client.AddConfig(context.Background(), req)
+	if err != nil {
+		log.Fatalf("Failed to insert data: %v", err)
+	}
 }
