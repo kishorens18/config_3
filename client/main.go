@@ -54,15 +54,15 @@ func InsertData() {
 
 func GetData() {
 
-	id := "653a0683e9807ff9306101f1"
-	key := "2"
+	id := "65392561f7ea7462e51a1de2"
+	key := "11"
 	req := &pb.GetDataRequest{
 		Id:  id,
 		Key: key,
 	}
 	_, err := client.GetData(context.Background(), req)
 	if err != nil {
-		log.Fatalf("Failed to insert data: %v", err)
+		log.Fatalf("Failed to get data: %v", err)
 	}
 }
 

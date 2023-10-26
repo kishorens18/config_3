@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	pb "go_config/proto"
 	"log"
@@ -31,14 +32,13 @@ type RequestData struct {
 }
 
 func (s *server) InsertData(ctx context.Context, req *pb.Request) (*emptypb.Empty, error) {
-	// Unmarshal the value from the request
+
 	var value interface{}
 	err := json.Unmarshal(req.Value.Value, &value)
 	if err != nil {
 		return nil, err
 	}
 
-	// Connect to MongoDB
 	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
 	client, err := mongo.Connect(context.Background(), clientOptions)
 	if err != nil {
@@ -46,16 +46,13 @@ func (s *server) InsertData(ctx context.Context, req *pb.Request) (*emptypb.Empt
 	}
 	defer client.Disconnect(context.Background())
 
-	// Get the collection
 	collection := client.Database("kishore").Collection("nithish")
 
-	// Create the document to be inserted
 	document := bson.M{
 		"Name":   req.Name,
-		"Config": []interface{}{value}, // Store the value in an array
+		"Config": []interface{}{value},
 	}
 
-	// Insert the document into the collection
 	result, err := collection.InsertOne(context.Background(), document)
 	if err != nil {
 		return nil, err
@@ -82,31 +79,105 @@ func (s *server) GetData(ctx context.Context, req *pb.GetDataRequest) (*pb.GetDa
 
 	collection := client.Database("kishore").Collection("nithish")
 
-	// Create a filter based on _id and key
 	filter := bson.M{"_id": id}
-	if req.Key != "" {
-		filter["Config.Key"] = req.Key
-	}
-
-	// Define a variable to store the result
-	var result bson.M
-
-	err = collection.FindOne(context.TODO(), filter).Decode(&result)
+	var wholeDocumentResult bson.M
+	err = collection.FindOne(context.TODO(), filter).Decode(&wholeDocumentResult)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
 	}
-	fmt.Println("Result:")
-	fmt.Println(result)
 
-	// Convert the result to a gRPC response
+	err = collection.FindOne(context.TODO(), filter).Decode(&wholeDocumentResult)
+	if err != nil {
+		fmt.Println("Error in Whole Document")
+		fmt.Println(err)
+		return nil, err
+	}
+
+	fmt.Println("Whole:")
+	fmt.Println(wholeDocumentResult)
+
+	var specificConfigResult bson.M
+	configFilter := bson.M{
+		"_id": id,
+		"Config": bson.M{
+			"$elemMatch": bson.M{
+				"key": req.Key,
+			},
+		},
+	}
+	err = collection.FindOne(context.TODO(), configFilter).Decode(&specificConfigResult)
+	if err != nil {
+		fmt.Println("Error in Specific")
+		fmt.Println(err)
+		return nil, err
+	}
+
+	// // Retrieve the value for the specified key
+	// configArray, ok := specificConfigResult["Config"].(primitive.A)
+	// if !ok {
+	//     fmt.Println("Config key not found")
+	//     return nil, errors.New("config key not found")
+	// }
+
+	// var value interface{}
+	// for _, configItem := range configArray {
+	//     item, ok := configItem.(primitive.M)
+	//     if !ok {
+	//         continue
+	//     }
+
+	//     // Check if the key matches the requested key
+	//     if key, keyExists := item["key"].(string); keyExists && key == req.Key {
+	//         value = item["value"]
+	//         break
+	//     }
+	// }
+
+	// // Print and return the value
+	// fmt.Println("Specific Value:", value)
+
+	var specifiedKeyValuePair map[string]interface{}
+
+	// Retrieve the value for the specified key
+	configArray, ok := specificConfigResult["Config"].(primitive.A)
+	if !ok {
+		fmt.Println("Config key not found")
+		return nil, errors.New("config key not found")
+	}
+
+	for _, configItem := range configArray {
+		item, ok := configItem.(primitive.M)
+		if !ok {
+			continue
+		}
+
+		if key, keyExists := item["key"].(string); keyExists && key == req.Key {
+			specifiedKeyValuePair = map[string]interface{}{
+				"Config": []map[string]interface{}{
+					{
+						"key":   item["key"],
+						"value": item["value"],
+					},
+				},
+				"Name": specificConfigResult["Name"],
+				"_id":  specificConfigResult["_id"].(primitive.ObjectID).Hex(),
+			}
+			break
+		}
+	}
+
+	fmt.Println("SpecifiedKeyValuePair:")
+	fmt.Println(specifiedKeyValuePair)
+
 	response := &pb.GetDataResponse{}
 	response.GDRA = append(response.GDRA, &pb.Application{
-		Id:   id.Hex(), // Convert the ObjectID to a string
-		Name: result["Name"].(string),
-		// Add other fields as needed
+		Id:   id.Hex(),
+		Name: specificConfigResult["Name"].(string),
 	})
+
 	return response, nil
+
 }
 
 func (s *server) AddConfig(ctx context.Context, req *pb.AddConfigRequest) (*emptypb.Empty, error) {
@@ -131,13 +202,13 @@ func (s *server) AddConfig(ctx context.Context, req *pb.AddConfigRequest) (*empt
 
 	filter := bson.M{"_id": id}
 	update := bson.M{
-		"$push": bson.M{"Config": bson.M{"Key": req.Key, "Value": value}},
+		"$push": bson.M{"Config": bson.M{"key": req.Key, "value": value}},
 	}
 
 	res, err := collection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		fmt.Println(err)
-		return nil, err // Return the error to the client
+		return nil, err
 	}
 	fmt.Println(res.UpsertedID)
 
